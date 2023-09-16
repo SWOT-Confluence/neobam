@@ -40,7 +40,11 @@ process_data = function(data, stan_file) {
                          data$swot_data$time, GLOBAL_PARAMS$perc_lower,
                          GLOBAL_PARAMS$perc_upper, GLOBAL_PARAMS$nt_window,
                          GLOBAL_PARAMS$nx_sample, data$sos_data$window_params)
-
+  print("----------------------windowed----------------------------")
+  print(windowed)
+  print(" ")
+  print(" ")
+  print(" ")
   # Generate priors
   neobam_prep_data = NA
   data_and_priors = generate_neobam_priors_and_data(windowed,

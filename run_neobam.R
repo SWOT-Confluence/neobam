@@ -63,12 +63,15 @@ main = function() {
 
   # Process
   if (in_data$valid != FALSE) {
+    print("---------------Data valid------------")
     process_data = process_data(in_data, STAN_FILE)
     out_data = list(reach_id = io_data$reach_id,
                     nt = in_data$swot_data$nt,
                     invalid_nodes = in_data$invalid_nodes,
                     invalid_times = in_data$invalid_times)
+    print(out_data)
   } else {
+    print("---------Data invalid----------------")
     process_data = create_invalid_out(length(in_data$nt))
     out_data = list(reach_id = io_data$reach_id,
                     nt = in_data$nt,
@@ -78,6 +81,10 @@ main = function() {
 
   # Write output
   write_output(out_data, process_data$posteriors, process_data$discharge, OUT_DIR)
+  print("----------------posteriors--------------------")
+  print(process_data$posteriors)
+  print("----------------discharge-------------------")
+  print(process_data$discharge)
   end = Sys.time()
   print(paste("Total execution time for reach", io_data$reach_id, ":", (end - start), "seconds."))
 }

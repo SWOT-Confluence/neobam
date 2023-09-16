@@ -27,9 +27,11 @@ get_input = function(swot_file, sos_file, reach_id) {
 
   # Return list of valid observations
   if (length(data) == 0) {
+    print("-----------length of data 0, as reported by get_input, returning valid==False-----------")
     return(list(valid=FALSE, reach_id=reach_id, nx=swot_data$nx, nt=swot_data$nt))
   } else {
     # Create a list of data with reach identifier
+    print("---------------enough data found-------------")
     return(list(valid=TRUE, reach_id = reach_id, swot_data=data$swot_data,
                 sos_data=data$sos_data, invalid_nodes=data$invalid_nodes,
                 invalid_times=data$invalid_times))
@@ -103,11 +105,18 @@ get_sos = function(sos_file, reach_id) {
 
   window_params$r_hat = exp(var.get.nc(n_grp, "logr_hat")[indexes])
   window_params$r_sd = exp(var.get.nc(n_grp, "logr_sd")[indexes])
+
   window_params$lowerbound_r = min(exp(var.get.nc(n_grp, "lowerbound_logr")[index]))
   window_params$upperbound_r = max(exp(var.get.nc(n_grp, "upperbound_logr")[index]))
 
   window_params$logn_hat = var.get.nc(n_grp, "logn_hat")[indexes]
   window_params$logn_sd = var.get.nc(n_grp, "logn_sd")[indexes]
+  print('indexes')
+  print(indexes)
+    print("showing nan")
+  print(var.get.nc(n_grp, "logn_hat")[indexes])
+  print("after exponential")
+  print(window_params$logn_hat)
   window_params$lowerbound_logn = min(var.get.nc(n_grp, "lowerbound_logn")[index])
   window_params$upperbound_logn = max(var.get.nc(n_grp, "upperbound_logn")[index])
 
@@ -125,17 +134,24 @@ get_sos = function(sos_file, reach_id) {
 check_observations = function(swot_data, sos_data) {
 
   # Q priors
+  print('do we get here?')
   qhat = sos_data$Q_priors$logQ_hat
   qmax = sos_data$Q_priors$upperbound_logQ
   qmin = sos_data$Q_priors$lowerbound_logQ
   qsd = sos_data$Q_priors$logQ_sd
   qhat[qhat < 0] = NA
+  print(qhat[[1]])
+  print(qmax[[1]])
+  print(qmin[[1]])
+  print(qsd[[1]])
   if (is.na(qhat[[1]]) || is.na(qmax[[1]]) || is.na(qmin[[1]]) || is.na(qsd[[1]])) { return(vector(mode = "list")) }
 
   # SWOT data
   swot_data$width[swot_data$width < 0] = NA
   swot_data$slope2[swot_data$slope2 < 0] = NA
+
   invalid = get_invalid_nodes_times(swot_data$width, swot_data$slope2, swot_data$time)
+  print('invalids')
 
   # Return valid data (or empty list if invalid)
   return(remove_invalid(swot_data, sos_data, invalid$invalid_nodes, invalid$invalid_times))
