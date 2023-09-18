@@ -247,8 +247,8 @@ remove_invalid = function(swot_data, sos_data, invalid_nodes, invalid_times){
 get_invalid = function(obs) {
 
   # Determine invalid nx and nt for obs
-  invalid_nodes = rowSums(is.na(obs)) >= (ncol(obs) - 5)
-  invalid_times = colSums(is.na(obs)) >= (nrow(obs) - 5)
+  invalid_nodes = rowSums(is.na(obs)) > (ncol(obs) - 5)
+  invalid_times = colSums(is.na(obs)) > (nrow(obs) - 5)
   return(list(invalid_nodes=invalid_nodes, invalid_times=invalid_times))
 
 }
