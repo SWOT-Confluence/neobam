@@ -25,30 +25,6 @@ OUT_DIR = file.path("/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt", "output")
 STAN_FILE = file.path( "neobam", "neobam_stan_engine.stan")
 
 
-#' Identify reach and locate SWOT and SoS files.
-#'
-#' @param reaches_json name of json reach file
-#'
-#' @return list of swot file and sos file
-get_reach_files = function(reaches_json){
-  # Get reach identifier from array environment variable
-  # index = strtoi(Sys.getenv("AWS_BATCH_JOB_ARRAY_INDEX")) + 1
-  # args = commandArgs(trailingOnly=TRUE)
-
-
-  # if (length(args)>=1){
-  #     reaches_json = file.path(IN_DIR, paste('reaches_',strtoi(args[1]),'.json', sep = ""))
-  # } else{
-  #     reaches_json = file.path(IN_DIR, 'reaches.json')
-  # }
-
-  
-    # reaches_json= '/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt/input/reaches.json'
-  json_data = rjson::fromJSON(file=file.path(reaches_json))[[index]]
-  return(list(reach_id = json_data$reach_id,
-              swot_file = file.path(IN_DIR, "swot", json_data$swot),
-              sos_file = file.path(IN_DIR, "sos", json_data$sos)))
-}
 
 #' Create output data structure for invalid observations
 #'
@@ -73,30 +49,21 @@ main = function() {
   # Identify reach files to process
   start = Sys.time()
   args = commandArgs(trailingOnly=TRUE)
-  # reaches_json = ifelse(identical(args, character(0)), "reaches.json", args[1])
-      reaches_json= '/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt/input/reaches.json'
-  io_data = get_reach_files(reaches_json)
-    
-  # Get Input
-  in_data = get_input(io_data$swot_file, io_data$sos_file, io_data$reach_id)
 
+  # Get Input
+  in_data = get_input(sos_file,set_json,set_index)
+    
+  is_valid = check_valid(in_data)
    
   # Process
-  if (in_data$valid != FALSE) {
+  if (is_valid == TRUE) {
     neobam_output = process_data(in_data, STAN_FILE)
-neobam_output$thisisdumb==0
-    out_data = list(reach_id = io_data$reach_id,
-                    nt = in_data$swot_data$nt,
-                    invalid_nodes = in_data$invalid_nodes,
-                    invalid_times = in_data$invalid_times)
+    out_data = neobam_output
+                
   } else {
    
-    neobam_output = create_invalid_out(length(in_data$nt))
-      neobam_output$thisisdumb=1
-    out_data = list(reach_id = io_data$reach_id,
-                    nt = in_data$nt,
-                    invalid_nodes = vector(mode = "list"),
-                    invalid_times = vector(mode = "list"))
+    
+    out_data = 'dummy'
   }
     
    
@@ -104,9 +71,9 @@ neobam_output$thisisdumb==0
   # Write output
   # write_output(out_data, neobam_output$posteriors, neobam_output$posterior_Q, OUT_DIR)
   end = Sys.time()
-  print(paste("Total execution time for reach", io_data$reach_id, ":", (end - start), "seconds."))
-    
-    return(list(c(neobam_output,out_data,thisisdumb)))
+  print(paste("Total execution time for set", set_index, ":", (end - start), "seconds."))
+
+    return(list('neobam_output'=out_data,'time'=in_data$time,'reach_id'=in_data$reach_id))
 }
 
 neobam_output=main()

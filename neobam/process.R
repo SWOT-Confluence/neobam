@@ -37,8 +37,6 @@
 
 process_data = function(data, stan_file) {
     
- 
-
 
 library(ncdf4,lib.loc = "/nas/cee-water/cjgleason/r-lib/",quietly=TRUE,warn.conflicts=FALSE)
 library(dplyr,warn.conflicts=FALSE,quietly=TRUE)
@@ -49,51 +47,49 @@ library(stringr)
 
 #this function does data prep and generate priors
 
-   
 
+ Sobs=as.matrix(data$slope)[,1:(ncol(data$slope)-1)] #comes in with a reach id
+ Wobs=as.matrix(data$width)[,1:(ncol(data$slope)-1)]
+
+    date=data$time
     
-  neobam_parameters=list(
-    reachid=data$reachid,
-    date=data$swot_data$time,
-    Sobs=data$swot_data$slope2,
-    Wobs=data$swot_data$width,
+    neobam_parameters=list()
+    neobam_parameters$date=date
+    neobam_parameters$Wobs=Wobs
+    neobam_parameters$Sobs=Sobs
 
     #performative variables
-    Werr_sd=    20,
-    Serr_sd=    0.00001, 
-    logWerr_sd=    norm_to_lognorm(mean(data$swot_data$width,na.rm=T),20)$sigma,
-    logSerr_sd=  norm_to_lognorm(mean(data$swot_data$width,na.rm=T),0.00001)$sigma,
+     neobam_parameters$Werr_sd=    20
+     neobam_parameters$Serr_sd=    0.00001
+     neobam_parameters$logWerr_sd=    norm_to_lognorm(mean(Wobs,na.rm=T),20)$sigma
+     neobam_parameters$logSerr_sd=  norm_to_lognorm(mean(Sobs,na.rm=TRUE),0.00001)$sigma
     
-      iter=     2000
+      neobam_parameters$iter=     2000
 
-
-    
-)
-
-   neobam_parameters$ logQ_hat= rep(data$sos_data$Q_priors$logQ_hat,
-                                    times=ncol(neobam_parameters$Wobs)) 
-   neobam_parameters$ lowerbound_logQ= data$sos_data$Q_priors$lowerbound_logQ
-   neobam_parameters$ upperbound_logQ=data$sos_data$Q_priors$upperbound_logQ
-   neobam_parameters$ logQ_sd= rep(data$sos_data$Q_priors$logQ_sd,
-                                   times=ncol(neobam_parameters$Wobs))
+   neobam_parameters$ logQ_hat= rep(data$Q_priors$Q_priors$logQ_hat,
+                                    times=ncol(Wobs)) 
+   neobam_parameters$ lowerbound_logQ= data$Q_priors$Q_priors$lowerbound_logQ
+   neobam_parameters$ upperbound_logQ=data$Q_priors$Q_priors$upperbound_logQ
+   neobam_parameters$ logQ_sd= rep(data$Q_priors$Q_priors$logQ_sd,
+                                   times=ncol(Wobs))
                
-neobam_parameters$r_hat= rep(0.55,times=nrow(neobam_parameters$Wobs))# new_priors$r_hat
-neobam_parameters$r_sd= rep(0.15,times=nrow(neobam_parameters$Wobs)) #new_priors$r_sd
+neobam_parameters$r_hat= rep(0.55,times=nrow(Wobs))# new_priors$r_hat
+neobam_parameters$r_sd= rep(0.15,times=nrow(Wobs)) #new_priors$r_sd
 neobam_parameters$lowerbound_r=0.3
 neobam_parameters$upperbound_r=1
     
-neobam_parameters$logWb_hat= rep(6.44,times=nrow(neobam_parameters$Wobs))# new_priors$r_hat
-neobam_parameters$logWb_sd= rep(1.22,times=nrow(neobam_parameters$Wobs)) #new_priors$r_sd
+neobam_parameters$logWb_hat= rep(6.44,times=nrow(Wobs))# new_priors$r_hat
+neobam_parameters$logWb_sd= rep(1.22,times=nrow(Wobs)) #new_priors$r_sd
 neobam_parameters$lowerbound_logWb=4.4
 neobam_parameters$upperbound_logWb=9.95 
     
-neobam_parameters$logDb_hat= rep(2.36,times=nrow(neobam_parameters$Wobs))# new_priors$r_hat
-neobam_parameters$logDb_sd= rep(0.83,times=nrow(neobam_parameters$Wobs)) #new_priors$r_sd
+neobam_parameters$logDb_hat= rep(2.36,times=nrow(Wobs))# new_priors$r_hat
+neobam_parameters$logDb_sd= rep(0.83,times=nrow(Wobs)) #new_priors$r_sd
 neobam_parameters$lowerbound_logDb=-0.03
 neobam_parameters$upperbound_logDb=3.85 
     
-neobam_parameters$logn_hat= rep(log(0.03),times=nrow(neobam_parameters$Wobs))# new_priors$r_hat
-neobam_parameters$logn_sd= rep(0.1,times=nrow(neobam_parameters$Wobs)) #new_priors$r_sd
+neobam_parameters$logn_hat= rep(log(0.03),times=nrow(Wobs))# new_priors$r_hat
+neobam_parameters$logn_sd= rep(0.1,times=nrow(Wobs)) #new_priors$r_sd
 neobam_parameters$lowerbound_logn=log(0.01)
 neobam_parameters$upperbound_logn=log(0.05)
 

@@ -13,82 +13,105 @@ library(RNetCDF,lib.loc='/home/cjgleason_umass_edu/.conda/pkgs/r-rnetcdf-2.6_2-r
 #'
 #' @return named list of data needed to run neoBAM
 #' @export
-get_input = function(swot_file, sos_file, reach_id) {
+get_input = function( sos_file,set_json,set_index) {
 
   # Get SWOT
-  swot_data = get_swot(swot_file)
+  swot_data = get_swot(set_json,set_index)
 
-  # Get SOS
-  sos_data = get_sos(sos_file, reach_id)
+  # Get Qpriors
+  Q_priors_all = lapply(swot_data$width$reach_id,get_Qpriors,sos_file=sos_file)
+  Q_priors= all_to_one_Q_priors(Q_priors_all)
+    #these come out one per reach. average over the cycle
 
-  # Check for valid number of observations
-  data = check_observations(swot_data, sos_data)
 
-  # Return list of valid observations
-  if (length(data) == 0) {
-    print('in get_input(), neobam has decided the data are invalid')
-     
-    return(list(valid=FALSE, reach_id=reach_id, nx=swot_data$nx, nt=swot_data$nt, thisisdumb=1))
-  } else {
-    # Create a list of data with reach identifier
-    return(list(valid=TRUE, reach_id = reach_id, swot_data=data$swot_data,
-                sos_data=data$sos_data, invalid_nodes=data$invalid_nodes,
-                invalid_times=data$invalid_times))
-  }
+    width=swot_data$width%>%
+    select(sort(names(swot_data$width)))
+
+slope=swot_data$slope%>%
+    select(sort(names(swot_data$slope)))
+    
+    
+  return(list('reach_id'=Q_priors$reach_ids,'width'=width,'slope'=slope,'Q_priors'=Q_priors,'time'=names(width)[1:(ncol(width)-1)]))
 }
 
-#' Retrieve SWOT data.
-#'
-#' @param swot_file string path to SWOT NetCDF file
-#'
-#' @return list of width, slope2, and time matrices
-get_swot = function(swot_file) {
-  swot = open.nc(swot_file)
-  nx = var.get.nc(swot, "nx")
-  nt = var.get.nc(swot, "nt")
-
-  node_grp = grp.inq.nc(swot, "reach")$self
-  width = t(var.get.nc(node_grp, "width"))
-  slope2 = t(var.get.nc(node_grp, "slope2"))
-  time = t(var.get.nc(node_grp, "time"))
+get_swot = function(set_json,set_index) {
     
 
 
-  close.nc(swot)
+  json_data = rjson::fromJSON(file=file.path(set_json))
 
-  return(list(nx=nx, nt=nt, width=width, slope2=slope2, time=time))
+count=0
+reachid=0
+setid=0
+# json_data
+# json_data[[1]][[1]]
+for (i in 1:length(json_data)){
+    this_set=json_data[[i]]
+    # print(length(this_set))
+    for (j in 1:length(this_set)){
+        count=count+1
+        # print(json_data[[i]][[j]])
+        reachid[count]=this_set[[j]]$reach_id  
+        setid[count]=i
+    }
+ }
 
-}
+        sets=data.frame('set_id'=setid,'reach_id'=reachid)
 
-reload_sos = function(sos_file, retry_number){
-  tries = retry_number
-  while (tries > 0){
-    tryCatch (
-      {
-        sos = open.nc(sos_file)
-        # print("sos loaded...")
-        tries = 0
 
-      },
-      error=function(e) {
-              message('An Error Occurred')
-              # print(e)
-              tries = tries - 1
-              Sys.sleep(runif(1, min=100, max=500))
+    
+get_swot_from_set=function(setid,setdf){
+    library(dplyr)
+    library(tidyr)
 
-          },
-      warning=function(w) {
-            message('A Warning Occurred')
-            # print(w)
-            return(NA)
+
+    this_set=dplyr::filter(setdf,set_id==setid)
+ 
+      thisset=data.frame('width'=NA,'slope'=NA,'time'=NA,
+                       'reach_id'=NA, 'setid'=NA,'nt'=NA)
         
-  }
-    )
+    for (reach_id in this_set$reach_id){
+    swot_file=paste0('/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt/input/swot/',reach_id,'_SWOT.nc')
+  swot = open.nc(swot_file)        
+  nx = var.get.nc(swot, "nx")
+  nt = var.get.nc(swot, "nt")
 
-  }
-  return(sos)
+  reach_grp = grp.inq.nc(swot, "reach")$self
+  width = var.get.nc(reach_grp, "width")
+  slope = var.get.nc(reach_grp, "slope2")
+  time = var.get.nc(reach_grp, "time")
+        
+    
+  thisset=rbind(thisset,data.frame('width'=width,'slope'=slope,'time'=time,
+                       'reach_id'=reach_id, 'setid'=setid,'nt'=length(width)))
+
+    close.nc(swot)
+    }
+
+
+  width_matrix=select(thisset,width,time,reach_id)%>%
+    filter(!is.na(width))%>%
+    filter(!is.na(time))%>%
+    mutate(time=as.integer(time))%>%
+     pivot_wider(names_from = time, values_from = width)
+   
+  slope_matrix=select(thisset,slope,time,reach_id)%>%
+    filter(!is.na(slope))%>%
+    filter(!is.na(time))%>%
+    mutate(time=as.integer(time))%>%
+     pivot_wider(names_from = time, values_from = slope)
+
+    return(list(width=width_matrix,slope=slope_matrix))
+ 
+    
+}
+      
+
+return(get_swot_from_set(setid=set_index,setdf=sets))
+
 
 }
+
 
 
 #' Retrieve SOS data.
@@ -98,18 +121,12 @@ reload_sos = function(sos_file, retry_number){
 #'
 #' @return list of Q priors
 #' @export
-get_sos = function(sos_file, reach_id) {
+get_Qpriors = function(sos_file, reach_id) {
 
   Q_priors = list()
-  sos = reload_sos(sos_file, 5)
-  # print('loaded sos...')
-  # print(sos)
 
+  sos=open.nc(sos_file)
 
-  tries = 5
-  while (tries >0){
-    tryCatch ( {
-    # print('trying...')
     reach_grp = grp.inq.nc(sos, "reaches")$self
     rids = var.get.nc(reach_grp, "reach_id")
     index = which(rids == reach_id, arr.ind=TRUE)
@@ -133,172 +150,60 @@ get_sos = function(sos_file, reach_id) {
     r_grp = grp.inq.nc(sos, "gbpriors/reach")$self
     Q_priors$logQ_sd = var.get.nc(r_grp, "logQ_sd")[index]
 
-    window_params = list()
-    n_grp = grp.inq.nc(sos, "gbpriors/node")$self
-    window_params$logWb_hat = var.get.nc(n_grp, "logWb_hat")[indexes]
-    window_params$logWb_sd = var.get.nc(n_grp, "logWb_sd")[indexes]
-    window_params$lowerbound_logWb = min(var.get.nc(n_grp, "lowerbound_logWb")[index])
-    window_params$upperbound_logWb = max(var.get.nc(n_grp, "upperbound_logWb")[index])
+   
+  close.nc(sos)
 
-    window_params$logDb_hat = var.get.nc(n_grp, "logDb_hat")[indexes]
-    window_params$logDb_sd = var.get.nc(n_grp, "logDb_sd")[indexes]
-    window_params$lowerbound_logDb = min(var.get.nc(n_grp, "lowerbound_logDb")[index])
-    window_params$upperbound_logDb = max(var.get.nc(n_grp, "upperbound_logDb")[index])
-
-    window_params$r_hat = exp(var.get.nc(n_grp, "logr_hat")[indexes])
-    window_params$r_sd = exp(var.get.nc(n_grp, "logr_sd")[indexes])
-    window_params$lowerbound_r = min(exp(var.get.nc(n_grp, "lowerbound_logr")[index]))
-    window_params$upperbound_r = max(exp(var.get.nc(n_grp, "upperbound_logr")[index]))
-
-    window_params$logn_hat = var.get.nc(n_grp, "logn_hat")[indexes]
-    window_params$logn_sd = var.get.nc(n_grp, "logn_sd")[indexes]
-    window_params$lowerbound_logn = min(var.get.nc(n_grp, "lowerbound_logn")[index])
-    window_params$upperbound_logn = max(var.get.nc(n_grp, "upperbound_logn")[index])
-    close.nc(sos)
-    tries = 0
-
-
-  },
-      error=function(e) {
-              message('An Error Occurred, reloading sos')
-              close.nc(sos)
-
-
-              # print(e)
-              tries = tries - 1
-              Sys.sleep(runif(1, min=10, max=600))
-              sos = reload_sos(sos_file, 5)
-          },
-      warning=function(w) {
-            message('A Warning Occurred')
-            # print(w)
-            return(NA)
-      }
-  )
-}
 
   # print("Read was successful...")
 
-  return(list(Q_priors=Q_priors, window_params=window_params))
-
-}
-#' Checks if observation data is valid.
-#'
-#' @param swot_data named list of SWOT observations
-#' @param sos_data named list of priors (Q and window_params)
-#'
-#' @return list of valid observations or an empty list if there are none
-check_observations = function(swot_data, sos_data) {
-
-  # Q priors
-  qhat = sos_data$Q_priors$logQ_hat
-  qmax = sos_data$Q_priors$upperbound_logQ
-  qmin = sos_data$Q_priors$lowerbound_logQ
-  qsd = sos_data$Q_priors$logQ_sd
-  qhat[qhat < 0] = NA
-  if (is.na(qhat[[1]]) || is.na(qmax[[1]]) || is.na(qmin[[1]]) || is.na(qsd[[1]])) { return(vector(mode = "list")) }
-
-  # SWOT data
-  swot_data$width[swot_data$width < 0] = NA
-  swot_data$slope2[swot_data$slope2 < 0] = NA
-  invalid = get_invalid_nodes_times(swot_data$width, swot_data$slope2, swot_data$time)
-
-  # Return valid data (or empty list if invalid)
-  return(remove_invalid(swot_data, sos_data, invalid$invalid_nodes, invalid$invalid_times))
-}
-
-#' Retrieve invalid nodes and time steps
-#'
-#' @param width matrix of SWOT width obs
-#' @param slope2 matrix of SWOT slope2 obs
-#' @param time matrix of SWOT time obs
-#'
-#' @return named list of invalid nodes and times indexes
-get_invalid_nodes_times = function(width, slope2, time) {
-
-  invalid_width = get_invalid(width)
-  invalid_slope2 = get_invalid(slope2)
-  invalid_time = get_invalid(time)
-  invalid_nodes = unique(c(which(invalid_width$invalid_nodes == TRUE),
-                           which(invalid_slope2$invalid_nodes == TRUE),
-                           which(invalid_time$invalid_nodes == TRUE)))
-  invalid_times = unique(c(which(invalid_width$invalid_times == TRUE),
-                           which(invalid_slope2$invalid_times == TRUE),
-                           which(invalid_time$invalid_times == TRUE)))
-  return(list(invalid_nodes=invalid_nodes, invalid_times=invalid_times))
-}
-
-#' Remove invalid nodes and times from SWOT observations and SOS node priors
-#'
-#' @param swot_data named list of SWOT observations
-#' @param sos_data named list of priors (Q and window_params)
-#' @param invalid_nodes vector of invalid node indexes
-#' @param invalid_times vector of invalid time indexes
-#'
-#' @return named list of SWOT observations, Q priors, and other priors
-remove_invalid = function(swot_data, sos_data, invalid_nodes, invalid_times){
-
-  # All valid
-  if (identical(invalid_nodes, integer(0)) && identical(invalid_times, integer(0))) {
-    return(list(swot_data=swot_data, sos_data=sos_data,
-                invalid_nodes=invalid_nodes, invalid_times=invalid_times))
-    # Valid nodes
-  } else if (identical(invalid_nodes, integer(0))) {
-    swot_data$width = swot_data$width[, -invalid_times]
-    swot_data$slope2 = swot_data$slope2[, -invalid_times]
-    swot_data$time = swot_data$time[, -invalid_times]
-
-    # Valid time steps
-  } else if (identical(invalid_times, integer(0))) {
-    swot_data$width = swot_data$width[-invalid_nodes,]
-    swot_data$slope2 = swot_data$slope2[-invalid_nodes,]
-    swot_data$time = swot_data$time[-invalid_nodes,]
-    sos_data$window_params$logWb_hat = sos_data$window_params$logWb_hat[-invalid_nodes]
-    sos_data$window_params$logWb_sd = sos_data$window_params$logWb_sd[-invalid_nodes]
-    sos_data$window_params$logDb_hat = sos_data$window_params$logDb_hat[-invalid_nodes]
-    sos_data$window_params$logDb_sd = sos_data$window_params$logDb_sd[-invalid_nodes]
-    sos_data$window_params$r_hat = sos_data$window_params$r_hat[-invalid_nodes]
-    sos_data$window_params$r_sd = sos_data$window_params$r_sd[-invalid_nodes]
-    sos_data$window_params$logn_hat = sos_data$window_params$logn_hat[-invalid_nodes]
-    sos_data$window_params$logn_sd = sos_data$window_params$logn_sd[-invalid_nodes]
-
-    # Both invalid
-  } else {
-    swot_data$width = swot_data$width[-invalid_nodes, -invalid_times]
-    swot_data$slope2 = swot_data$slope2[-invalid_nodes, -invalid_times]
-    swot_data$time = swot_data$time[-invalid_nodes, -invalid_times]
-    sos_data$window_params$logWb_hat = sos_data$window_params$logWb_hat[-invalid_nodes]
-    sos_data$window_params$logWb_sd = sos_data$window_params$logWb_sd[-invalid_nodes]
-    sos_data$window_params$logDb_hat = sos_data$window_params$logDb_hat[-invalid_nodes]
-    sos_data$window_params$logDb_sd = sos_data$window_params$logDb_sd[-invalid_nodes]
-    sos_data$window_params$r_hat = sos_data$window_params$r_hat[-invalid_nodes]
-    sos_data$window_params$r_sd = sos_data$window_params$r_sd[-invalid_nodes]
-    sos_data$window_params$logn_hat = sos_data$window_params$logn_hat[-invalid_nodes]
-    sos_data$window_params$logn_sd = sos_data$window_params$logn_sd[-invalid_nodes]
-
-  }
-
-  # Return list to indicate invalid data
-  if (is.null(dim(swot_data$width)) || nrow(swot_data$width) < 5 || ncol(swot_data$width) < 5 ) { return(vector(mode = "list")) }
-  if (is.null(dim(swot_data$slope2)) || nrow(swot_data$slope2) < 5 || ncol(swot_data$slope2) < 5 ) { return(vector(mode = "list")) }
-  if (is.null(dim(swot_data$time)) || nrow(swot_data$time) < 5 || ncol(swot_data$time) < 5 ) { return(vector(mode = "list")) }
-
-  # Return list of remaining valid observation data
-  return(list(swot_data=swot_data, sos_data=sos_data,
-              invalid_nodes=invalid_nodes, invalid_times=invalid_times))
+  return(list(Q_priors=Q_priors,reach_id=reach_id))
 
 }
 
-#' Checks if observation parameter has valid nx (nodes) and valid nt (time steps)
-#'
-#' @param obs matrix
-#'
-#' @return list of invalid nodes and invalid time steps
-get_invalid = function(obs) {
+check_valid=function(data){
+    date=data$time
+    Sobs=data$slope
+    Wobs=data$width
+    
+    if(nrow(Sobs) <3){return(valid=FALSE)}
+    if(nrow(Wobs) <3){return(valid=FALSE)}
+    if(ncol(Sobs) <4){return(valid=FALSE)}
+    if(ncol(Wobs) <4){return(valid=FALSE)}
+    if(sum(is.na(Sobs)) > ((ncol(Sobs)*nrow(Sobs))*0.3)){return(valid=FALSE)}
+    if(sum(is.na(Wobs)) > ((ncol(Wobs)*nrow(Wobs))*0.3)){return(valid=FALSE)}
+    
+  
+    if(all(names(Sobs) == names(Wobs)) != TRUE){return(valid=FALSE)}
+    return(valid=TRUE)
+    
+    
+    }
+    
+   all_to_one_Q_priors= function(Q_priors_all){
+       #comes in as a list
+       
+       process_one_level=function(this_row){
+    
+           
+             output=  data.frame('logQ_hat'=this_row$Q_priors$logQ_hat,
+                  'logQ_sd'=this_row$Q_priors$logQ_sd,
+                  'lowerbound_logQ'=this_row$Q_priors$lowerbound_logQ,
+                  'upperbound_logQ'=this_row$Q_priors$upperbound_logQ,
+                        'reach_id'=this_row$reach_id)
+           }
+       
+       all_Q_df=do.call(rbind,lapply(Q_priors_all,process_one_level))
+       
+       Q_priors=all_Q_df%>%
+       dplyr::select(-reach_id)%>%
+       summarize(logQ_hat=mean(logQ_hat),
+                 logQ_sd=mean(logQ_sd),
+                 lowerbound_logQ=mean(lowerbound_logQ),
+                 upperbound_logQ=mean(upperbound_logQ))
+       
 
-  # Determine invalid nx and nt for obs
-  invalid_nodes = rowSums(is.na(obs)) >= (ncol(obs) - 5)
-  invalid_times = colSums(is.na(obs)) >= (nrow(obs) - 5)
-  return(list(invalid_nodes=invalid_nodes, invalid_times=invalid_times))
-
-}
+       
+       return(list('reach_ids'=dplyr::select(all_Q_df,reach_id),'Q_priors'=Q_priors) )
+       
+       
+       }
