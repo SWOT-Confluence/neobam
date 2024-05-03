@@ -15,8 +15,12 @@ library(RNetCDF,lib.loc='/home/cjgleason_umass_edu/.conda/pkgs/r-rnetcdf-2.6_2-r
 #' @export
 get_input = function( sos_file,set_json,set_index) {
 
+
   # Get SWOT
   swot_data = get_swot(set_json,set_index)
+   
+    if(typeof(swot_data) != "list"){
+        return(valid=FALSE)}
 
   # Get Qpriors
   Q_priors_all = lapply(swot_data$width$reach_id,get_Qpriors,sos_file=sos_file)
@@ -31,12 +35,14 @@ slope=swot_data$slope%>%
     select(sort(names(swot_data$slope)))
     
     
+    
+    
   return(list('reach_id'=Q_priors$reach_ids,'width'=width,'slope'=slope,'Q_priors'=Q_priors,'time'=names(width)[1:(ncol(width)-1)]))
-}
+
+ }
 
 get_swot = function(set_json,set_index) {
     
-
 
   json_data = rjson::fromJSON(file=file.path(set_json))
 
@@ -58,35 +64,45 @@ for (i in 1:length(json_data)){
 
         sets=data.frame('set_id'=setid,'reach_id'=reachid)
 
-
-    
 get_swot_from_set=function(setid,setdf){
     library(dplyr)
     library(tidyr)
-
+    
 
     this_set=dplyr::filter(setdf,set_id==setid)
  
       thisset=data.frame('width'=NA,'slope'=NA,'time'=NA,
                        'reach_id'=NA, 'setid'=NA,'nt'=NA)
+    
+ 
         
     for (reach_id in this_set$reach_id){
-    swot_file=paste0('/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt/input/swot/',reach_id,'_SWOT.nc')
-  swot = open.nc(swot_file)        
-  nx = var.get.nc(swot, "nx")
-  nt = var.get.nc(swot, "nt")
+         swot_file=paste0('/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt/input/swot/',reach_id,'_SWOT.nc') 
 
-  reach_grp = grp.inq.nc(swot, "reach")$self
-  width = var.get.nc(reach_grp, "width")
-  slope = var.get.nc(reach_grp, "slope2")
-  time = var.get.nc(reach_grp, "time")
+
+            if(!file.exists(swot_file)){return(valid=FALSE)}  
+
+          swot = open.nc(swot_file)        
+          nx = var.get.nc(swot, "nx")
+          nt = var.get.nc(swot, "nt")
+
+          reach_grp = grp.inq.nc(swot, "reach")$self
+          width = var.get.nc(reach_grp, "width")
+          slope = var.get.nc(reach_grp, "slope2")
+          time = var.get.nc(reach_grp, "time")
+
+
+          thisset=rbind(thisset,data.frame('width'=width,'slope'=slope,'time'=time,
+                               'reach_id'=reach_id, 'setid'=setid,'nt'=length(width)))
+
+            close.nc(swot)
         
+        }
     
-  thisset=rbind(thisset,data.frame('width'=width,'slope'=slope,'time'=time,
-                       'reach_id'=reach_id, 'setid'=setid,'nt'=length(width)))
+    # print(nrow(thisset))
 
-    close.nc(swot)
-    }
+    
+        if(nrow(thisset)<3){return(valid=FALSE)}
 
 
   width_matrix=select(thisset,width,time,reach_id)%>%
@@ -99,11 +115,13 @@ get_swot_from_set=function(setid,setdf){
     filter(!is.na(slope))%>%
     filter(!is.na(time))%>%
     mutate(time=as.integer(time))%>%
+    mutate(slope=ifelse(slope<0,NA,slope))%>%
      pivot_wider(names_from = time, values_from = slope)
-
+    
+ 
+  
     return(list(width=width_matrix,slope=slope_matrix))
  
-    
 }
       
 
@@ -167,10 +185,10 @@ check_valid=function(data){
     
     if(nrow(Sobs) <3){return(valid=FALSE)}
     if(nrow(Wobs) <3){return(valid=FALSE)}
-    if(ncol(Sobs) <4){return(valid=FALSE)}
-    if(ncol(Wobs) <4){return(valid=FALSE)}
-    if(sum(is.na(Sobs)) > ((ncol(Sobs)*nrow(Sobs))*0.3)){return(valid=FALSE)}
-    if(sum(is.na(Wobs)) > ((ncol(Wobs)*nrow(Wobs))*0.3)){return(valid=FALSE)}
+    if(ncol(Sobs) <3){return(valid=FALSE)}
+    if(ncol(Wobs) <3){return(valid=FALSE)}
+    if(sum(is.na(Sobs)) > ((ncol(Sobs)*nrow(Sobs))*0.4)){return(valid=FALSE)}
+    if(sum(is.na(Wobs)) > ((ncol(Wobs)*nrow(Wobs))*0.4)){return(valid=FALSE)}
     
   
     if(all(names(Sobs) == names(Wobs)) != TRUE){return(valid=FALSE)}
@@ -207,3 +225,5 @@ check_valid=function(data){
        
        
        }
+    
+    

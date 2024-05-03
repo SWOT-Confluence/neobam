@@ -53,18 +53,28 @@ main = function() {
   # Get Input
   in_data = get_input(sos_file,set_json,set_index)
     
+  
+   
+    if(typeof(in_data) != "list"){
+       return('dummy')}else{
+    
   is_valid = check_valid(in_data)
+        
+    
    
   # Process
   if (is_valid == TRUE) {
+  
     neobam_output = process_data(in_data, STAN_FILE)
     out_data = neobam_output
+ 
                 
   } else {
    
     
-    out_data = 'dummy'
+   return('dummy')
   }
+}
     
    
 
@@ -72,6 +82,7 @@ main = function() {
   # write_output(out_data, neobam_output$posteriors, neobam_output$posterior_Q, OUT_DIR)
   end = Sys.time()
   print(paste("Total execution time for set", set_index, ":", (end - start), "seconds."))
+
 
     return(list('neobam_output'=out_data,'time'=in_data$time,'reach_id'=in_data$reach_id))
 }
