@@ -4,7 +4,7 @@
 #' SWOT: node/time, node/width, node/slope2
 
 # Libraries
-library(RNetCDF,lib.loc='/home/cjgleason_umass_edu/.conda/pkgs/r-rnetcdf-2.6_2-r42h498a2f1_0/lib/R/library/',quietly=TRUE,warn.conflicts = FALSE)
+library(RNetCDF,quietly=TRUE,warn.conflicts = FALSE)
 #' Title
 #'
 #' @param swot_file string path to SWOT NetCDF file

@@ -8,22 +8,23 @@
 
 
 # Functions
-# source("/app/neobam/input.R")
-# source("/app/neobam/neobam_functions.R")
-# source("/app/neobam/output.R")
-# source("/app/neobam/process.R")
+source("/app/neobam/input.R")
+source("/app/neobam/neobam_functions.R")
+source("/app/neobam/output.R")
+source("/app/neobam/process.R")
 
-source("neobam/input.R")
-source("neobam/neobam_functions.R")
-source("neobam/output.R")
-source("neobam/process.R")
+# source("neobam/input.R")
+# source("neobam/neobam_functions.R")
+# source("neobam/output.R")
+# source("neobam/process.R")
 
 # Constants
-IN_DIR = file.path("/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt",  "input")
-OUT_DIR = file.path("/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt", "output")
-# STAN_FILE = file.path("/app", "neobam", "neobam_stan_engine.stan")
-STAN_FILE = file.path( "neobam", "neobam_stan_engine.stan")
-
+# IN_DIR = file.path("/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt",  "input")
+# OUT_DIR = file.path("/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt", "output")
+IN_DIR = file.path("/mnt/data/input")
+OUT_DIR = file.path("/mnt/data/output")
+STAN_FILE = file.path("/app", "neobam", "neobam_stan_engine.stan")
+# STAN_FILE = file.path( "neobam", "neobam_stan_engine.stan")
 
 
 #' Create output data structure for invalid observations
