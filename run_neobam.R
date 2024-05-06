@@ -47,9 +47,16 @@ create_invalid_out = function(nt) {
 #' Execute neoBAM
 main = function() {
 
-  # Identify reach files to process
+
+    # Identify reach files to process
   start = Sys.time()
   args = commandArgs(trailingOnly=TRUE)
+  set_json = ifelse(identical(args, character(0)), "/mnt/data/input/metrosets.json", args[1])
+      # reaches_json= '/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt/input/reaches.json'
+  io_data = get_reach_files(reaches_json)
+    
+  # Get Input
+  # in_data = get_input(io_data$swot_file, io_data$sos_file, io_data$reach_id)
 
   # Get Input
   in_data = get_input(sos_file,set_json,set_index)
