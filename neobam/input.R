@@ -19,24 +19,20 @@ get_input = function( sos_file,set_json,set_index) {
   # Get SWOT
   swot_data = get_swot(set_json,set_index)
    
-    if(typeof(swot_data) != "list"){
-        return(valid=FALSE)}
+  if(typeof(swot_data) != "list"){
+      return(valid=FALSE)}
 
   # Get Qpriors
   Q_priors_all = lapply(swot_data$width$reach_id,get_Qpriors,sos_file=sos_file)
   Q_priors= all_to_one_Q_priors(Q_priors_all)
     #these come out one per reach. average over the cycle
 
-
-    width=swot_data$width%>%
+  width=swot_data$width%>%
     select(sort(names(swot_data$width)))
 
-slope=swot_data$slope%>%
-    select(sort(names(swot_data$slope)))
-    
-    
-    
-    
+  slope=swot_data$slope%>%
+      select(sort(names(swot_data$slope)))
+     
   return(list('reach_id'=Q_priors$reach_ids,'width'=width,'slope'=slope,'Q_priors'=Q_priors,'time'=names(width)[1:(ncol(width)-1)]))
 
  }
@@ -46,23 +42,24 @@ get_swot = function(set_json,set_index) {
 
   json_data = rjson::fromJSON(file=file.path(set_json))
 
-count=0
-reachid=0
-setid=0
-# json_data
-# json_data[[1]][[1]]
-for (i in 1:length(json_data)){
-    this_set=json_data[[i]]
-    # print(length(this_set))
-    for (j in 1:length(this_set)){
-        count=count+1
-        # print(json_data[[i]][[j]])
-        reachid[count]=this_set[[j]]$reach_id  
-        setid[count]=i
-    }
- }
+  count=0
+  reachid=0
+  setid=0
+  # json_data
+  # json_data[[1]][[1]]
+  for (i in 1:length(json_data)){
+      this_set=json_data[[i]]
+      # print(length(this_set))
+      for (j in 1:length(this_set)){
+          count=count+1
+          # print(json_data[[i]][[j]])
+          reachid[count]=this_set[[j]]$reach_id  
+          setid[count]=i
+      }
+  }
 
-        sets=data.frame('set_id'=setid,'reach_id'=reachid)
+  return(sets=data.frame('set_id'=setid,'reach_id'=reachid))
+        }
 
 get_swot_from_set=function(setid,setdf){
     library(dplyr)
