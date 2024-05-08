@@ -5,6 +5,7 @@
 
 # Libraries
 library(RNetCDF,quietly=TRUE,warn.conflicts = FALSE)
+library(dplyr,quietly=TRUE,warn.conflicts = FALSE)
 #' Title
 #'
 #' @param swot_file string path to SWOT NetCDF file
@@ -122,10 +123,10 @@ get_swot_from_set=function(setid,setdf){
 }
       
 
-return(get_swot_from_set(setid=set_index,setdf=sets))
+# return(get_swot_from_set(setid=set_index,setdf=sets))
 
 
-}
+# }
 
 
 
