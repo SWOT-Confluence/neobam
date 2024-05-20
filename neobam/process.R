@@ -38,11 +38,11 @@
 process_data = function(data, stan_file) {
     
 
-library(ncdf4,lib.loc = "/nas/cee-water/cjgleason/r-lib/",quietly=TRUE,warn.conflicts=FALSE)
+# library(ncdf4,quietly=TRUE,warn.conflicts=FALSE)
 library(dplyr,warn.conflicts=FALSE,quietly=TRUE)
-library(tidyr, lib.loc = "/nas/cee-water/cjgleason/r-lib/",warn.conflicts=FALSE,quietly=TRUE)
-library(hydroGOF, lib.loc = "/nas/cee-water/cjgleason/r-lib/",warn.conflicts=FALSE,quietly=TRUE)
-library(ggplot2, lib.loc = "/nas/cee-water/cjgleason/r-lib/",warn.conflicts=FALSE,quietly=TRUE)
+library(tidyr,warn.conflicts=FALSE,quietly=TRUE)
+# library(hydroGOF,warn.conflicts=FALSE,quietly=TRUE)
+library(ggplot2,warn.conflicts=FALSE,quietly=TRUE)
 library(stringr)
 
 #this function does data prep and generate priors
@@ -107,7 +107,6 @@ neobam_parameters$upperbound_logn=log(0.05)
       neobam_parameters$sigma_man=matrix(0.26,
                      nrow=neobam_parameters$nx,ncol=neobam_parameters$nt)
     
-    # print(neobam_parameters)
     
 fit_out = run_neobam_stan(neobam_parameters,stan_file)
 

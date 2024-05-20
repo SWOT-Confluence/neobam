@@ -56,35 +56,43 @@ main = function() {
 
 
   # Get Input
-  in_data = get_input(sos_file,set_json,set_index)
-    
-  
+  in_data = get_input(set_json,set_index)
    
-    if(typeof(in_data) != "list"){
-       return('dummy')}else{
-    
-  is_valid = check_valid(in_data)
+  if(typeof(in_data) != "list"){
+    neobam_output = create_invalid_out(length(in_data$nt))
+    out_data = list(reach_id = io_data$reach_id,
+                    nt = in_data$nt,
+                    invalid_nodes = vector(mode = "list"),
+                    invalid_times = vector(mode = "list"))
+                    
+                    
+                    }
+  else{
+          
+      is_valid = check_valid(in_data)
+            
         
+      
+      # Process
+      if (is_valid == TRUE) {
+      
+        neobam_output = process_data(in_data, STAN_FILE)
+        out_data = neobam_output
     
-   
-  # Process
-  if (is_valid == TRUE) {
-  
-    neobam_output = process_data(in_data, STAN_FILE)
-    out_data = neobam_output
- 
-                
-  } else {
-   
-    
-   return('dummy')
-  }
-}
+                    
+      } else {
+        neobam_output = create_invalid_out(length(in_data$nt))
+        out_data = list(reach_id = io_data$reach_id,
+                        nt = in_data$nt,
+                        invalid_nodes = vector(mode = "list"),
+                        invalid_times = vector(mode = "list"))
+      }
+    }
     
    
 
   # Write output
-  # write_output(out_data, neobam_output$posteriors, neobam_output$posterior_Q, OUT_DIR)
+  write_output(in_data,out_data, neobam_output$posteriors, neobam_output$posterior_Q, OUT_DIR, is_valid)
   end = Sys.time()
   print(paste("Total execution time for set", set_index, ":", (end - start), "seconds."))
 

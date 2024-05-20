@@ -14,11 +14,13 @@ library(dplyr,quietly=TRUE,warn.conflicts = FALSE)
 #'
 #' @return named list of data needed to run neoBAM
 #' @export
-get_input = function( sos_file,set_json,set_index) {
+get_input = function(set_json,set_index) {
 
 
   # Get SWOT
   swot_data = get_swot(set_json,set_index)
+  sos_file = paste0("/mnt/data/input/sos/",swot_data$sos, sep="")
+  swot_data = get_swot_from_set(set_index, swot_data)
    
   if(typeof(swot_data) != "list"){
       return(valid=FALSE)}
@@ -46,20 +48,18 @@ get_swot = function(set_json,set_index) {
   count=0
   reachid=0
   setid=0
-  # json_data
-  # json_data[[1]][[1]]
   for (i in 1:length(json_data)){
       this_set=json_data[[i]]
-      # print(length(this_set))
       for (j in 1:length(this_set)){
           count=count+1
-          # print(json_data[[i]][[j]])
           reachid[count]=this_set[[j]]$reach_id  
           setid[count]=i
       }
   }
 
-  return(sets=data.frame('set_id'=setid,'reach_id'=reachid))
+
+  sos_file = this_set[[1]]$sos
+  return(sets=data.frame('set_id'=setid,'reach_id'=reachid, 'sos_file'=rep(sos_file, length(reachid))))
         }
 
 get_swot_from_set=function(setid,setdf){
@@ -69,16 +69,16 @@ get_swot_from_set=function(setid,setdf){
 
     this_set=dplyr::filter(setdf,set_id==setid)
  
-      thisset=data.frame('width'=NA,'slope'=NA,'time'=NA,
+    thisset=data.frame('width'=NA,'slope'=NA,'time'=NA,
                        'reach_id'=NA, 'setid'=NA,'nt'=NA)
     
  
         
     for (reach_id in this_set$reach_id){
-         swot_file=paste0('/nas/cee-water/cjgleason/SWOT_Q_UMASS/mnt/input/swot/',reach_id,'_SWOT.nc') 
+         swot_file=paste0('/mnt/data/input/swot/',reach_id,'_SWOT.nc') 
 
 
-            if(!file.exists(swot_file)){return(valid=FALSE)}  
+        if(!file.exists(swot_file)){return(valid=FALSE)}  
 
           swot = open.nc(swot_file)        
           nx = var.get.nc(swot, "nx")
@@ -97,7 +97,7 @@ get_swot_from_set=function(setid,setdf){
         
         }
     
-    # print(nrow(thisset))
+    
 
     
         if(nrow(thisset)<3){return(valid=FALSE)}
@@ -116,19 +116,10 @@ get_swot_from_set=function(setid,setdf){
     mutate(slope=ifelse(slope<0,NA,slope))%>%
      pivot_wider(names_from = time, values_from = slope)
     
- 
   
     return(list(width=width_matrix,slope=slope_matrix))
  
 }
-      
-
-# return(get_swot_from_set(setid=set_index,setdf=sets))
-
-
-# }
-
-
 
 #' Retrieve SOS data.
 #'
@@ -152,8 +143,6 @@ get_Qpriors = function(sos_file, reach_id) {
     indexes = which(nrids == reach_id, arr.ind=TRUE)
 
     model_grp = grp.inq.nc(sos, "model")$self
-    # print("made it to the model group")
-    # print(model_grp)
     Q_priors$logQ_hat = log(var.get.nc(model_grp, "mean_q")[index])
     Q_priors$upperbound_logQ = log(var.get.nc(model_grp, "max_q")[index])
     min_q = var.get.nc(model_grp, "min_q")[index]   # Check action taken
@@ -170,7 +159,6 @@ get_Qpriors = function(sos_file, reach_id) {
   close.nc(sos)
 
 
-  # print("Read was successful...")
 
   return(list(Q_priors=Q_priors,reach_id=reach_id))
 
@@ -201,17 +189,15 @@ check_valid=function(data){
        process_one_level=function(this_row){
     
            
-             output=  data.frame('logQ_hat'=this_row$Q_priors$logQ_hat,
+        output=  data.frame('logQ_hat'=this_row$Q_priors$logQ_hat,
                   'logQ_sd'=this_row$Q_priors$logQ_sd,
                   'lowerbound_logQ'=this_row$Q_priors$lowerbound_logQ,
                   'upperbound_logQ'=this_row$Q_priors$upperbound_logQ,
                         'reach_id'=this_row$reach_id)
            }
-       
        all_Q_df=do.call(rbind,lapply(Q_priors_all,process_one_level))
-       
        Q_priors=all_Q_df%>%
-       dplyr::select(-reach_id)%>%
+      #  dplyr::select(-reach_id)%>%
        summarize(logQ_hat=mean(logQ_hat),
                  logQ_sd=mean(logQ_sd),
                  lowerbound_logQ=mean(lowerbound_logQ),

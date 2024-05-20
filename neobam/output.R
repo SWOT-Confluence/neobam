@@ -4,7 +4,7 @@
 #' posteriors (mean and sd): r, logn, logWb, logDb
 
 # Libraries
-library(RNetCDF,lib.loc='/home/cjgleason_umass_edu/.conda/pkgs/r-rnetcdf-2.6_2-r42h498a2f1_0/lib/R/library/',quietly=TRUE,warn.conflicts = FALSE)
+library(RNetCDF,quietly=TRUE,warn.conflicts = FALSE)
 
 
 # Constants
@@ -40,45 +40,45 @@ write_posteriors = function(nc_out, posteriors) {
     error = function(cond) grp.def.nc(nc_out, "r"),
     grp.inq.nc(nc_out, "r")$self
   )
-  var.def.nc(r, mean, "NC_DOUBLE", NA)
-  att.put.nc(r, mean, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(r, mean, posteriors$r$mean)
-  var.def.nc(r, sd, "NC_DOUBLE", NA)
-  att.put.nc(r, sd, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(r, sd, posteriors$r$sd)
+  var.def.nc(r, "mean", "NC_DOUBLE", "nx")
+  att.put.nc(r, "mean", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(r, "mean", posteriors$r$mean)
+  var.def.nc(r, "sd", "NC_DOUBLE", NA)
+  att.put.nc(r, "sd", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(r, "sd", posteriors$r$sd)
 
   logn = tryCatch(
     error = function(cond) grp.def.nc(nc_out, "logn"),
     grp.inq.nc(nc_out, "logn")$self
   )
-  var.def.nc(logn, mean, "NC_DOUBLE", NA)
-  att.put.nc(logn, mean, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(logn, mean, posteriors$logn$mean)
-  var.def.nc(logn, sd, "NC_DOUBLE", NA)
-  att.put.nc(logn, sd, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(logn, sd, posteriors$logn$sd)
+  var.def.nc(logn, "mean", "NC_DOUBLE", "nx")
+  att.put.nc(logn, "mean", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(logn, "mean", posteriors$logn$mean)
+  var.def.nc(logn, "sd", "NC_DOUBLE", NA)
+  att.put.nc(logn, "sd", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(logn, "sd", posteriors$logn$sd)
 
   logWb = tryCatch(
     error = function(cond) grp.def.nc(nc_out, "logWb"),
     grp.inq.nc(nc_out, "logWb")$self
   )
-  var.def.nc(logWb, mean, "NC_DOUBLE", NA)
-  att.put.nc(logWb, mean, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(logWb, mean, posteriors$logWb$mean)
-  var.def.nc(logWb, sd, "NC_DOUBLE", NA)
-  att.put.nc(logWb, sd, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(logWb, sd, posteriors$logWb$sd)
+  var.def.nc(logWb, "mean", "NC_DOUBLE", "nx")
+  att.put.nc(logWb, "mean", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(logWb, "mean", posteriors$logWb$mean)
+  var.def.nc(logWb, "sd", "NC_DOUBLE", NA)
+  att.put.nc(logWb, "sd", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(logWb, "sd", posteriors$logWb$sd)
 
   logDb = tryCatch(
     error = function(cond) grp.def.nc(nc_out, "logDb"),
     grp.inq.nc(nc_out, "logDb")$self
   )
-  var.def.nc(logDb, mean, "NC_DOUBLE", NA)
-  att.put.nc(logDb, mean, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(logDb, mean, posteriors$logDb$mean)
-  var.def.nc(logDb, sd, "NC_DOUBLE", NA)
-  att.put.nc(logDb, sd, "_FillValue", "NC_DOUBLE", FILL)
-  var.put.nc(logDb, sd, posteriors$logDb$sd)
+  var.def.nc(logDb, "mean", "NC_DOUBLE", "nx")
+  att.put.nc(logDb, "mean", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(logDb, "mean", posteriors$logDb$mean)
+  var.def.nc(logDb, "sd", "NC_DOUBLE", NA)
+  att.put.nc(logDb, "sd", "_FillValue", "NC_DOUBLE", FILL)
+  var.put.nc(logDb, "sd", posteriors$logDb$sd)
 
 }
 
@@ -87,7 +87,7 @@ write_posteriors = function(nc_out, posteriors) {
 #' @param chain integer number that indicates neoBAM run
 #' @param nc_out NetCDF file pointer to write to
 #' @param discharge list of discharge values
-write_discharge = function(chain, nc_out, discharge) {
+write_discharge = function(chain, nc_out, discharge,discharge_sd, is_valid) {
 
   # Chain
 
@@ -97,10 +97,32 @@ write_discharge = function(chain, nc_out, discharge) {
     error = function(cond) grp.def.nc(nc_out, "q"),
     grp.inq.nc(nc_out, "q")$self
   )
-  var.def.nc(q, name, "NC_DOUBLE", "nt")
-  att.put.nc(q, name, "_FillValue", "NC_DOUBLE", FILL)
-  discharge[is.nan(discharge)] = NA
-  var.put.nc(q, name, discharge)
+  var.def.nc(q, "q", "NC_DOUBLE", "nt")
+  att.put.nc(q, "q", "_FillValue", "NC_DOUBLE", FILL)
+  # discharge[is.nan(discharge)] = NA
+  if (is_valid){
+      var.put.nc(q, "q", as.numeric(unlist(discharge)))
+
+  } else{
+    var.put.nc(q,"q",FILL)
+  }
+
+
+    # Discharge error
+  q = tryCatch(
+    error = function(cond) grp.def.nc(nc_out, "q"),
+    grp.inq.nc(nc_out, "q")$self
+  )
+  var.def.nc(q, "q_sd", "NC_DOUBLE", NA)
+  att.put.nc(q, "q_sd", "_FillValue", "NC_DOUBLE", FILL)
+  # discharge[is.nan(discharge)] = NA
+  if (is_valid){
+      var.put.nc(q, "q_sd", discharge_sd)
+
+  } else{
+    var.put.nc(q,"q_sd",FILL)
+  }
+
 }
 
 #' Write discharge and posteriors to NetCDF file.
@@ -111,30 +133,51 @@ write_discharge = function(chain, nc_out, discharge) {
 #' @param out_dir string to output directory
 #'
 #' @export
-write_output = function(data, posteriors, discharge, out_dir) {
+write_output = function(in_data, data, posteriors, discharge, out_dir, is_valid) {
 
   # Concatenate invalid times back into discharge
   discharge = lapply(discharge, concatenate_invalid, invalid_times=data$invalid_times)
 
-  # File creation
-  nc_file = paste(out_dir, paste0(data$reach_id, "_geobam.nc"), sep=.Platform$file.sep)
-  nc_out = create.nc(nc_file, format="netcdf4")
+  for (i in 1:length(in_data$reach_id[[1]])){
 
-  # Global attributes
-  att.put.nc(nc_out, "NC_GLOBAL", "reach_id", "NC_INT64", data$reach_id)
+    rid = in_data$reach_id[[1]][i]
 
-  # Dimensions
-  dim.def.nc(nc_out, "nt", length(data$nt))
-  var.def.nc(nc_out, "nt", "NC_INT", "nt")
-  att.put.nc(nc_out, "nt", "units", "NC_STRING", "time")
-  var.put.nc(nc_out, "nt", data$nt)
+    # File creation
+    nc_file = paste(out_dir, paste0(rid, "_geobam.nc"), sep=.Platform$file.sep)
+    nc_out = create.nc(nc_file, format="netcdf4")
 
-  # Write data
-  lapply(list(1,2,3), write_posteriors, nc_out=nc_out, posteriors=posteriors)
+    # Global attributes
+    att.put.nc(nc_out, "NC_GLOBAL", "reach_id", "NC_INT64", rid)
+    att.put.nc(nc_out, "NC_GLOBAL", "set_ids", "NC_INT64", unlist(in_data$reach_id[[1]]))
 
-  # Discharge
-  lapply(list(1,2,3), write_discharge, nc_out=nc_out, discharge=discharge)
+    # Dimensions
+    # dim.def.nc(nc_out, "set_length", length(in_data$reach_id[[1]]))
+    # var.def.nc(nc_out, "set_ids", "NC_INT", "set_length")
+    # att.put.nc(nc_out, "set_ids", "units", "NC_STRING", "set_length")
+    # var.put.nc(nc_out, "set_ids", unlist(in_data$reach_id[[1]]))
 
-  # Close file
-  close.nc(nc_out)
+
+    dim.def.nc(nc_out, "nt", length(in_data$time))
+    var.def.nc(nc_out, "nt", "NC_INT", "nt")
+    att.put.nc(nc_out, "nt", "units", "NC_STRING", "time")
+    var.put.nc(nc_out, "nt", seq(from = 0, by = 1, length.out = length(in_data$time)))
+  
+    dim.def.nc(nc_out, "nx", length(posteriors$r$mean))
+    var.def.nc(nc_out, "nx", "NC_INT", "nx")
+    att.put.nc(nc_out, "nx", "units", "NC_STRING", "num_nodes")
+    var.put.nc(nc_out, "nx", seq(from = 0, by = 1, length.out = length(posteriors$r$mean)))
+
+    # # Write data
+    # lapply(list(1,2,3), write_posteriors, nc_out=nc_out, posteriors=posteriors)
+    write_posteriors(nc_out=nc_out, posteriors=posteriors)
+
+    # # Discharge
+    # lapply(list(1,2,3), write_discharge, nc_out=nc_out, discharge=discharge)
+    print('sd')
+    print(data$posterior_Q_sd)
+    write_discharge(nc_out=nc_out, discharge=discharge, discharge_sd = data$posterior_Q_sd,is_valid=is_valid)
+
+    # Close file
+    close.nc(nc_out)
+  }
 }
