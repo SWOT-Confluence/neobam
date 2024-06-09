@@ -40,6 +40,9 @@ write_posteriors = function(nc_out, posteriors) {
     error = function(cond) grp.def.nc(nc_out, "r"),
     grp.inq.nc(nc_out, "r")$self
   )
+  print("here are posteriors---------")
+  print(posteriors$r$mean)
+  print('there were posterirs......')
   var.def.nc(r, "mean", "NC_DOUBLE", "nx")
   att.put.nc(r, "mean", "_FillValue", "NC_DOUBLE", FILL)
   var.put.nc(r, "mean", posteriors$r$mean)
@@ -89,8 +92,20 @@ write_posteriors = function(nc_out, posteriors) {
 #' @param discharge list of discharge values
 write_discharge = function(chain, nc_out, discharge,discharge_sd, is_valid) {
 
-  # Chain
+  # # time
+  # discharge_time_var = tryCatch(
+  #   error = function(cond) grp.def.nc(discharge_time, "discharge_time"),
+  #   grp.inq.nc(nc_out, "discharge_time")$self
+  # )
+  # var.def.nc(discharge_time_var, "discharge_time", "NC_DOUBLE", "nt")
+  # att.put.nc(discharge_time_var, "discharge_time", "_FillValue", "NC_DOUBLE", FILL)
+  # # discharge[is.nan(discharge)] = NA
+  # # if (is_valid){
+  # var.put.nc(q, "discharge_time", as.numeric(unlist(discharge)))
 
+  # # } else{
+  # #   var.put.nc(q,"discharge_time",FILL)
+  # # }
 
   # Discharge
   q = tryCatch(
@@ -149,6 +164,7 @@ write_output = function(in_data, data, posteriors, discharge, out_dir, is_valid)
     # Global attributes
     att.put.nc(nc_out, "NC_GLOBAL", "reach_id", "NC_INT64", rid)
     att.put.nc(nc_out, "NC_GLOBAL", "set_ids", "NC_INT64", unlist(in_data$reach_id[[1]]))
+    att.put.nc(nc_out, "NC_GLOBAL", "discharge_time", "NC_STRING", unlist(in_data$time))
 
     # Dimensions
     # dim.def.nc(nc_out, "set_length", length(in_data$reach_id[[1]]))
@@ -161,6 +177,7 @@ write_output = function(in_data, data, posteriors, discharge, out_dir, is_valid)
     var.def.nc(nc_out, "nt", "NC_INT", "nt")
     att.put.nc(nc_out, "nt", "units", "NC_STRING", "time")
     var.put.nc(nc_out, "nt", seq(from = 0, by = 1, length.out = length(in_data$time)))
+    # var.put.nc(nc_out, "nt", in_data$time)
   
     dim.def.nc(nc_out, "nx", length(posteriors$r$mean))
     var.def.nc(nc_out, "nx", "NC_INT", "nx")
@@ -173,8 +190,8 @@ write_output = function(in_data, data, posteriors, discharge, out_dir, is_valid)
 
     # # Discharge
     # lapply(list(1,2,3), write_discharge, nc_out=nc_out, discharge=discharge)
-    print('sd')
-    print(data$posterior_Q_sd)
+    # print('sd')
+    # print(data$posterior_Q_sd)
     write_discharge(nc_out=nc_out, discharge=discharge, discharge_sd = data$posterior_Q_sd,is_valid=is_valid)
 
     # Close file

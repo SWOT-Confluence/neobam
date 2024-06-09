@@ -41,7 +41,7 @@ create_invalid_out = function(nt) {
     logWb = list(mean=NA_real_, sd=NA_real_),
     logDb = list(mean=NA_real_, sd=NA_real_)
   )
-  return(list(discharge=base_discharge, posteriors=list(base_posteriors, base_posteriors, base_posteriors)))
+  return(list(discharge=base_discharge, posteriors=base_posteriors))
 }
 
 #' Execute neoBAM
@@ -51,7 +51,8 @@ main = function() {
     # Identify reach files to process
   start = Sys.time()
   args = commandArgs(trailingOnly=TRUE)
-  set_json = ifelse(identical(args, character(0)), "/mnt/data/input/metrosets.json", args[1])
+  # set_json = ifelse(identical(args, character(0)), "/mnt/data/input/metrosets.json", args[1])
+  set_json = "/mnt/data/input/neosets.json"
   set_index = strtoi(Sys.getenv("AWS_BATCH_JOB_ARRAY_INDEX")) + 1
 
 
@@ -75,14 +76,16 @@ main = function() {
       
       # Process
       if (is_valid == TRUE) {
+        print('Its valid')
       
         neobam_output = process_data(in_data, STAN_FILE)
         out_data = neobam_output
     
                     
       } else {
+        print("Its not valid")
         neobam_output = create_invalid_out(length(in_data$nt))
-        out_data = list(reach_id = io_data$reach_id,
+        out_data = list(reach_id = in_data$reach_id,
                         nt = in_data$nt,
                         invalid_nodes = vector(mode = "list"),
                         invalid_times = vector(mode = "list"))

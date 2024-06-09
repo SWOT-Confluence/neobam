@@ -19,6 +19,9 @@ get_input = function(set_json,set_index) {
 
   # Get SWOT
   swot_data = get_swot(set_json,set_index)
+  print("here is the swot data we are looking for")
+  print(swot_data$sos[4])
+  print("There was the swot data")
   sos_file = paste0("/mnt/data/input/sos/",swot_data$sos, sep="")
   swot_data = get_swot_from_set(set_index, swot_data)
    
@@ -27,6 +30,11 @@ get_input = function(set_json,set_index) {
 
   # Get Qpriors
   Q_priors_all = lapply(swot_data$width$reach_id,get_Qpriors,sos_file=sos_file)
+  print("--------------------start------------------")
+  print("here is q priors all")
+  # print(Q_priors_all)
+    print("--------------------end------------------")
+
   Q_priors= all_to_one_Q_priors(Q_priors_all)
     #these come out one per reach. average over the cycle
 
@@ -56,9 +64,17 @@ get_swot = function(set_json,set_index) {
           setid[count]=i
       }
   }
-
-
-  sos_file = this_set[[1]]$sos
+  print("set index")
+  print(set_index)
+  this_set = json_data[[set_index]]
+  print("this set")
+  print(this_set)
+  a_reach = this_set[[1]]
+  print("a reach")
+  print(a_reach)
+  sos_file = a_reach$sos
+  print("Here is the new sos")
+  print(sos_file)
   return(sets=data.frame('set_id'=setid,'reach_id'=reachid, 'sos_file'=rep(sos_file, length(reachid))))
         }
 
@@ -136,6 +152,12 @@ get_Qpriors = function(sos_file, reach_id) {
 
     reach_grp = grp.inq.nc(sos, "reaches")$self
     rids = var.get.nc(reach_grp, "reach_id")
+    print("here are the r ids")
+    print(rids[4])
+    print("there it was")
+    print("here is the reach d")
+    print(reach_id)
+    print("yaaaa")
     index = which(rids == reach_id, arr.ind=TRUE)
 
     node_grp = grp.inq.nc(sos, "nodes")$self
@@ -143,10 +165,32 @@ get_Qpriors = function(sos_file, reach_id) {
     indexes = which(nrids == reach_id, arr.ind=TRUE)
 
     model_grp = grp.inq.nc(sos, "model")$self
+    print("--------------log hat group------------------")
+    print(index)
+    print('thats the index----------')
+    print("--------------end log hat--------------------")
+
+
+
     Q_priors$logQ_hat = log(var.get.nc(model_grp, "mean_q")[index])
     Q_priors$upperbound_logQ = log(var.get.nc(model_grp, "max_q")[index])
     min_q = var.get.nc(model_grp, "min_q")[index]   # Check action taken
-    if ((min_q < 0) | (is.na(min_q))) {
+    # print("here is whole group")
+    # print(var.get.nc(model_grp, "min_q"))
+    # print("here is minq")
+    # print(min_q)
+    # if ((min_q < 0) | (is.na(min_q))) {
+    #   Q_priors$lowerbound_logQ = NA
+    # } else {
+    #   Q_priors$lowerbound_logQ = log(min_q)
+    # }
+
+    # Check for numeric(0) explicitly
+    if (is.numeric(min_q) && length(min_q) == 0) {
+      min_q = NA
+    }
+
+    if (is.na(min_q) | min_q < 0) {
       Q_priors$lowerbound_logQ = NA
     } else {
       Q_priors$lowerbound_logQ = log(min_q)
