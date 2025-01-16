@@ -174,6 +174,7 @@ get_sos = function(sos_file, reach_id) {
   },
       error=function(e) {
               message('An Error Occurred, reloading sos')
+              message(e)
               close.nc(sos)
 
 
