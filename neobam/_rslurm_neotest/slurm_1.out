@@ -1,0 +1,24 @@
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 42 out of range; expecting index to be between 1 and 41 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Initialization failed."
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 42 out of range; expecting index to be between 1 and 41 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 40 out of range; expecting index to be between 1 and 39 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 46 out of range; expecting index to be between 1 and 45 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 47 out of range; expecting index to be between 1 and 46 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 40 out of range; expecting index to be between 1 and 39 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 45 out of range; expecting index to be between 1 and 44 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 42 out of range; expecting index to be between 1 and 41 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 44 out of range; expecting index to be between 1 and 43 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 47 out of range; expecting index to be between 1 and 46 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.
+[1] "Error : Exception: Exception: vector[uni] indexing: accessing element out of range. index 73 out of range; expecting index to be between 1 and 72 (in 'anon_model', line 45, column 10 to column 26) (in 'anon_model', line 255, column 2 to column 85)"
+Stan model 'anon_model' does not contain samples.

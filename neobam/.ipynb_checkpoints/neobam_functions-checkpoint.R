@@ -2,13 +2,13 @@
 run_neobam_stan = function(neobam_data_and_priors,sourcefile){
     
   library(BH,quietly=TRUE,warn.conflicts = FALSE)
-  library(rstan,lib.loc='/home/cjgleason_umass_edu/.conda/pkgs/r-rstan-2.21.7-r42h7525677_1/lib/R/library/',quietly=TRUE,warn.conflicts = FALSE)
-  library(dplyr,lib.loc = "/nas/cee-water/cjgleason/r-lib/",quietly=TRUE,warn.conflicts = FALSE)
-  library(tidyr, lib.loc = "/nas/cee-water/cjgleason/r-lib/",quietly=TRUE,warn.conflicts = FALSE)
-  library(stringr,lib.loc = "/nas/cee-water/cjgleason/r-lib/",quietly=TRUE,warn.conflicts = FALSE)
-    library(reshape2)
+  library(rstan,quietly=TRUE,warn.conflicts = FALSE)
+  library(dplyr,quietly=TRUE,warn.conflicts = FALSE)
+  library(tidyr,quietly=TRUE,warn.conflicts = FALSE)
+  library(stringr,quietly=TRUE,warn.conflicts = FALSE)
+  library(reshape2)
     
-    rstan_options(auto_write = TRUE)
+  rstan_options(auto_write = TRUE)
 
 
     
@@ -52,81 +52,73 @@ iter=neobam_data_and_priors$iter
   )
   
   output= data.frame(rstan::summary(fit1)$summary)
+    
+
   #OK! we now need a list of all the posteriors so we can return them to stuff back into the flow law
   # posterior_list=c('r','logn','betaslope','betaint','logbeta','logQ')
-     posterior_list=c('r','logn','logWb','logDb','logQ')
+     posterior_list=c('r','logn','logWb','logDb','logQ','Zo1','Zo','logQ_transform')
     
   posteriors=lapply(posterior_list,return_posterior_mean_sd,output)
   names(posteriors)=posterior_list
     
-    chain=1:3
-     alpha <- 1 - 0.95
-    
-   hydrograph_posterior=  rstan::extract(fit1, "logQ", permuted = FALSE) %>%
-    reshape2::melt()%>%
-    dplyr::mutate(chains = gsub("^chain:", "", .data$chains)) %>%
-    dplyr::filter(.data$chains %in% chain) %>%
-    dplyr::mutate(value = exp(.data$value)) %>%
-    dplyr::group_by(.data$parameters) %>%
-    dplyr::summarize(mean = mean(.data$value),
-              conf.low = quantile(.data$value, alpha / 2),
-              conf.high = quantile(.data$value, 1 - (alpha / 2)),
-              sd = sd(.data$value)) %>%
-    dplyr::rename(time = .data$parameters) %>%
-    dplyr::mutate(time = gsub("^logQ\\[", "", .data$time),
-           time = gsub("\\]$", "", .data$time),
-           time = as.numeric(.data$time)) %>%
-    dplyr::arrange(.data$time)
-    
-    # posteriors$logbeta$mean = (posteriors$r$mean * posteriors$betaslope$mean) + posteriors$betaint$mean
-    # posteriors$logbeta$sd = (posteriors$r$sd * posteriors$betaslope$sd) + posteriors$betaint$sd
+    hydrograph_vector=posteriors$logQ_transform$mean
 
+        replacements=which(as.vector(neobam_data_and_priors$hasdat==FALSE)) -1
+        values=NA
+        for (i in replacements){
+            hydrograph_vector=append(hydrograph_vector, values, after =i)
+         }
 
-  return(list('posteriors'=posteriors,'hydrograph_posterior'=hydrograph_posterior))
+        hydromat=matrix(hydrograph_vector,
+                          nrow=neobam_data_and_priors$nx,
+                          ncol=neobam_data_and_priors$nt)
+ 
+
+        hydrograph_posterior=apply(exp(hydromat),2,mean,na.rm=TRUE)
+        Qsd=apply(exp(hydromat),2,sd,na.rm=TRUE)
+    
+    
+  return(list('posteriors'=posteriors,
+              'hydrograph_posterior'=hydrograph_posterior,
+              'hydrograph_post_sd'=Qsd))
 
 }
 
-remake_discharge =function (Wobs,Sobs,posteriors){
+remake_discharge =function (H,S,stationvec,posteriors){
     
-    
-
-  r=posteriors$r$mean
-  logn=posteriors$logn$mean
-  logbeta=posteriors$logDb$mean -(r*posteriors$logWb$mean)
-  
-    logW=log(Wobs)
-    logS=log(Sobs)
-    
-finalQ=matrix(NA,nrow=nrow(logS),ncol=ncol(logS))
-
-
-    
-for (i in 1:nrow(logS)){
-
-logQ= 0.5*logS[i,] -
-     logn[i] +
-     1.66*logbeta[i] +
-     1.66*(log(r[i]/(r[i]+1))) +
-     ((1.66*r[i]) +1)*log(Wobs[i,])  
-    
-    
-finalQ[i,]=exp(logQ)
-}
-
-    
-finalQ[is.infinite(finalQ)]=NA
-    
-    
-finalQ=colMeans(finalQ,na.rm=TRUE) #take the mean for a given time t
-    #in linspace
 
   
-return(finalQ)
+
+    Zo1=posteriors$Zo1$mean
+    r=posteriors$r$mean
+    wb=exp(posteriors$logWb$mean)
+    db=exp(posteriors$logDb$mean)
+    n=0.03
+  
+    r=matrix(rep(r,times=ncol(H)),nrow=nrow(H),ncol=ncol(H))
+    wb=matrix(rep(wb,times=ncol(H)),nrow=nrow(H),ncol=ncol(H))
+    db=matrix(rep(db,times=ncol(H)),nrow=nrow(H),ncol=ncol(H))
+
+    
+    #make Zo station vectored
+            Zo=Zo1 + S*stationvec
+    #can use an abs on the slope, they are all nevative
+    Q=abs(S)^(0.5) * (H-Zo)^(1.66 +(1/r))*db^(-1/r)*(wb)*(1/n)*(r/(r+1))^(1.66)
+ 
+    
+
+    Qmean=apply(Q,2,mean,na.rm=TRUE)
+    Qsd=apply(Q,2,sd,na.rm=TRUE)
+
+  
+    return(list('Q'=Qmean,
+                 'sd'=Qsd))
 
   
 }
 
 norm_to_lognorm=function(mu,sigma){
+ 
     lognorm_mu=2*log(mu)-0.5*log(mu^2+sigma^2)
     lognorm_sigma= log(mu^2 + sigma^2) - 2*(log(mu))
     return(list('mu'=lognorm_mu,'sigma'=lognorm_sigma))
